@@ -341,6 +341,14 @@ local replicatedStorage = game:GetService("ReplicatedStorage")
 local localPlayer = game.Players.LocalPlayer
 local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 
+-- Settings for Random Trinket Farm
+local Settings = {
+    RandomTrinketFarm = false,
+    TpSpeed = 100
+}
+
+local Section = Tabs.Trinketstab:AddSection("TRINKETS FARM")
+
 -- Trinkets Toggle for Random Trinket
 local ToggleRandomTrinketFarm = Tabs.Trinketstab:AddToggle("RandomTrinketFarm", {
     Title = "Farm Random Trinket",
@@ -354,16 +362,13 @@ local function farmRandomTrinket()
         for _, v in pairs(workspace:GetChildren()) do
             if not Settings.RandomTrinketFarm then return end
             if v:FindFirstChild("PickableItem") and v:FindFirstChild("Part") then
-                -- Check if the trinket is not the chosen one
-                if v.PickableItem.Name ~= Settings.ChosenTrinket then
-                    -- Move to trinket position
-                    character.HumanoidRootPart.CFrame = v:FindFirstChild("Part").CFrame
-                    wait(0.5) -- Wait briefly to simulate movement time
+                -- Move to trinket position
+                character.HumanoidRootPart.CFrame = v:FindFirstChild("Part").CFrame
+                wait(0.5) -- Wait briefly to simulate movement time
 
-                    -- Simulate interaction with the trinket
-                    replicatedStorage.Remotes.Async:FireServer("Character", "Interaction", v:FindFirstChild("Part"))
-                    wait(1) -- Ensure there’s enough time for the interaction to complete
-                end
+                -- Simulate interaction with the trinket
+                replicatedStorage.Remotes.Async:FireServer("Character", "Interaction", v:FindFirstChild("Part"))
+                wait(1) -- Ensure there’s enough time for the interaction to complete
             end
         end
         wait(1) -- Optional delay to prevent too many operations
@@ -388,6 +393,8 @@ localPlayer.CharacterAdded:Connect(updateCharacter)
 -- Initialize Settings Table
 local Settings = {}
 
+local Section = Tabs.Trinketstab:AddSection("ORE FARM")
+
 -- // Ores Dropdown \\ --
 local DropdownOre = Tabs.Trinketstab:AddDropdown("Ore", {
     Title = "Choose Ore",
@@ -411,6 +418,8 @@ local ToggleOre = Tabs.Trinketstab:AddToggle("Ore", {
     end 
 })
 
+local Section = Tabs.Trinketstab:AddSection("FLOWER FARM")
+
 -- // Flowers Dropdown \\ --
 local DropdownFlower = Tabs.Trinketstab:AddDropdown("Flowers", {
     Title = "Choose Flower",
@@ -433,6 +442,65 @@ local ToggleFlower = Tabs.Trinketstab:AddToggle("Flower", {
 
 ToggleFlower:OnChanged(function(v)
     Settings.FarmFlower = v
+end)
+
+-- // Function Farm O/T/F \\ --
+local function getOre()
+    local dist, ore = math.huge
+    for i, v in pairs(game:GetService("Workspace").Map.Minerals:GetDescendants()) do
+        if v.Name == "MineralName" and v.Value == Settings.ChosenOre then
+            local oremag = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - v.Parent.Position).magnitude
+            if oremag < dist then
+                dist = oremag
+                ore = v.Parent
+            end
+        end
+    end
+    return ore
+end
+
+local function moveto(destinationCFrame, speed)
+    local character = game.Players.LocalPlayer.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local humanoidRootPart = character.HumanoidRootPart
+        humanoidRootPart.CFrame = destinationCFrame
+    end
+end
+
+spawn(function()
+    while wait() do
+        if Settings.FarmOre then
+            local ore = getOre()
+            if ore then
+                local ore_mag = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - ore.Position).magnitude
+                if ore_mag <= 5 then
+                    game:GetService("ReplicatedStorage").Remotes.Sync:InvokeServer("Pickaxe", "Server")
+                else
+                    moveto(ore.CFrame, tonumber(Settings.TpSpeed or 100))
+                end
+            end
+        end
+    end
+end)
+
+local function teleportTo(destinationCFrame)
+    local character = game.Players.LocalPlayer.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        character.HumanoidRootPart.CFrame = destinationCFrame
+    end
+end
+
+-- Main farming loop for flowers
+spawn(function()
+    while wait() do
+        if Settings.FarmFlower then
+            local chosenFlower = game.Workspace.Map:FindFirstChild(Settings.ChosenFlower)
+            if chosenFlower then
+                local flowerCFrame = chosenFlower:GetModelCFrame() * CFrame.new(0, 0, 0)
+                teleportTo(flowerCFrame)
+            end
+        end
+    end
 end)
 
 -- // TELEPORT TABS \\ --

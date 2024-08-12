@@ -175,6 +175,93 @@ local Slider = Tabs.Farmingtab:AddSlider("Slider",
     end
 })
 
+local function getClosestTarget(targetName)
+    local dist, target = math.huge
+    for _, v in pairs(Workspace:GetChildren()) do
+        if v:IsA("Model") and v.Name == targetName then
+            local mag = (plr.Character.HumanoidRootPart.Position - v:GetModelCFrame().p).Magnitude
+            if mag < dist then
+                dist = mag
+                target = v
+            end
+        end
+    end
+    return target
+end
+
+local function autofarm(type, targetName)
+    while Settings["autofarm_" .. type] do
+        wait()
+        pcall(function()
+            local target = getClosestTarget(targetName)
+            if not target then return end
+
+            local enemy_mag = (plr.Character.HumanoidRootPart.Position - target:GetModelCFrame().p).Magnitude
+
+            if not target:FindFirstChild("Executed") then
+                moveto(target:GetModelCFrame() * CFrame.new(0, 0, 3), tonumber(Settings.TpSpeed or 75))
+            end
+
+            local characterModel = plr.Character:FindFirstChildWhichIsA("Model")
+            local hasKatana = characterModel and characterModel:FindFirstChild("Blade")
+            
+            -- Attack logic
+            if enemy_mag <= 10 then
+                if hasKatana then
+                    if not characterModel:FindFirstChild("Equipped").Part0 then
+                        game:GetService("VirtualInputManager"):SendKeyEvent(true, "R", false, game)
+                    end
+                    
+                    if target:FindFirstChild("Block") then
+                        ReplicatedStorage.Remotes.Async:FireServer("Katana", "Heavy")
+                    else
+                        ReplicatedStorage.Remotes.Async:FireServer("Katana", "Server")
+                    end
+                else
+                    -- Fallback to Combat if no Katana is found
+                    local args = {
+                        [1] = "Combat",
+                        [2] = "Server"
+                    }
+                    ReplicatedStorage.Remotes.Async:FireServer(unpack(args))
+                end
+            end
+
+            if target:FindFirstChild("Executed") then
+                wait(1)
+                target:Destroy()
+            end
+
+            if target:FindFirstChild("Down") then
+                moveto(target:GetModelCFrame() * CFrame.new(0, 0, 3), tonumber(Settings.TpSpeed or 75))
+                ReplicatedStorage.Remotes.Sync:InvokeServer("Character", "Execute")
+            end
+
+            for _, v in pairs(plr.Character:GetChildren()) do
+                if v:IsA("StringValue") and (v.Name == "Stun" or v.Name == "Attacking" or v.Name == "AttackAnnounce" or v.Name == "Busy" or v.Name == "SequenceCooldown" or v.Name == "SequenceFactor" or v.Name == "HeavyCooldown" or v.Name == "Sequence" or v.Name == "SequenceFactor") then
+                    v:Destroy()
+                end
+            end
+        end)
+    end
+end
+
+spawn(function()
+    while wait() do
+        if Settings["autofarm_mobs"] and Settings["ChosenMob"] then
+            autofarm("mobs", Settings["ChosenMob"])
+        end
+    end
+end)
+
+spawn(function()
+    while wait() do
+        if Settings["autofarm_boss"] and Settings["ChosenBoss"] then
+            autofarm("boss", Settings["ChosenBoss"])
+        end
+    end
+end)
+
 -- // RAID TABS \\ --
 
 
@@ -289,6 +376,39 @@ local Toggle = Tabs.Misctab:AddToggle("MyToggle",
       Settings["AutoBreath"] = v
     end 
 })
+
+local function clearDebuffs(character)
+    local busy = character:FindFirstChild("Busy")
+    if busy then
+        busy:Destroy()
+    end
+
+    local slow = character:FindFirstChild("Slow")
+    if slow then
+        slow:Destroy()
+    end
+end
+
+local function autoBreath()
+    local player = game:GetService("Players").LocalPlayer
+    local breathing = player.Breathing
+
+    if breathing and breathing.Value ~= 80 then
+        game:GetService("ReplicatedStorage").Remotes.Async:FireServer("Character", "Breath", true)
+    end
+end
+
+spawn(function()
+    while wait(1) do
+        if Settings.AutoBreath then
+            local character = game.Players.LocalPlayer.Character
+            if character then
+                clearDebuffs(character)
+                autoBreath()
+            end
+        end
+    end
+end)
 
 local Toggle = Tabs.Misctab:AddToggle("MyToggle", 
 {
@@ -681,7 +801,7 @@ Tabs.Dupetabs:AddParagraph({
 })
 
 local Input = Tabs.Dupetabs:AddInput("Input", {
-    Title = "ITEM NAME",
+    Title = "M NAME",
     Description = "",
     Default = "",
     Placeholder = "Item Name",
@@ -721,134 +841,11 @@ Tabs.Dupetabs:AddButton({
         end
     end
 })
-
-------------------------------------------------------Farming Functions
-local function getClosestTarget(targetName)
-    local dist, target = math.huge
-    for _, v in pairs(Workspace:GetChildren()) do
-        if v:IsA("Model") and v.Name == targetName then
-            local mag = (plr.Character.HumanoidRootPart.Position - v:GetModelCFrame().p).Magnitude
-            if mag < dist then
-                dist = mag
-                target = v
-            end
-        end
-    end
-    return target
-end
-
-local function autofarm(type, targetName)
-    while Settings["autofarm_" .. type] do
-        wait()
-        pcall(function()
-            local target = getClosestTarget(targetName)
-            if not target then return end
-
-            local enemy_mag = (plr.Character.HumanoidRootPart.Position - target:GetModelCFrame().p).Magnitude
-
-            if not target:FindFirstChild("Executed") then
-                moveto(target:GetModelCFrame() * CFrame.new(0, 0, 3), tonumber(Settings.TpSpeed or 75))
-            end
-
-            local characterModel = plr.Character:FindFirstChildWhichIsA("Model")
-            local hasKatana = characterModel and characterModel:FindFirstChild("Blade")
-            
-            -- Attack logic
-            if enemy_mag <= 10 then
-                if hasKatana then
-                    if not characterModel:FindFirstChild("Equipped").Part0 then
-                        game:GetService("VirtualInputManager"):SendKeyEvent(true, "R", false, game)
-                    end
-                    
-                    if target:FindFirstChild("Block") then
-                        ReplicatedStorage.Remotes.Async:FireServer("Katana", "Heavy")
-                    else
-                        ReplicatedStorage.Remotes.Async:FireServer("Katana", "Server")
-                    end
-                else
-                    -- Fallback to Combat if no Katana is found
-                    local args = {
-                        [1] = "Combat",
-                        [2] = "Server"
-                    }
-                    ReplicatedStorage.Remotes.Async:FireServer(unpack(args))
-                end
-            end
-
-            if target:FindFirstChild("Executed") then
-                wait(1)
-                target:Destroy()
-            end
-
-            if target:FindFirstChild("Down") then
-                moveto(target:GetModelCFrame() * CFrame.new(0, 0, 3), tonumber(Settings.TpSpeed or 75))
-                ReplicatedStorage.Remotes.Sync:InvokeServer("Character", "Execute")
-            end
-
-            for _, v in pairs(plr.Character:GetChildren()) do
-                if v:IsA("StringValue") and (v.Name == "Stun" or v.Name == "Attacking" or v.Name == "AttackAnnounce" or v.Name == "Busy" or v.Name == "SequenceCooldown" or v.Name == "SequenceFactor" or v.Name == "HeavyCooldown" or v.Name == "Sequence" or v.Name == "SequenceFactor") then
-                    v:Destroy()
-                end
-            end
-        end)
-    end
-end
-
-spawn(function()
-    while wait() do
-        if Settings["autofarm_mobs"] and Settings["ChosenMob"] then
-            autofarm("mobs", Settings["ChosenMob"])
-        end
-    end
-end)
-
-spawn(function()
-    while wait() do
-        if Settings["autofarm_boss"] and Settings["ChosenBoss"] then
-            autofarm("boss", Settings["ChosenBoss"])
-        end
-    end
-end)
-
 ------------------------------------------------------Raid Functions
 
 
 ------------------------------------------------------Player Functions
 
-
-------------------------------------------------------Misc Functions
-local function clearDebuffs(character)
-    local busy = character:FindFirstChild("Busy")
-    if busy then
-        busy:Destroy()
-    end
-
-    local slow = character:FindFirstChild("Slow")
-    if slow then
-        slow:Destroy()
-    end
-end
-
-local function autoBreath()
-    local player = game:GetService("Players").LocalPlayer
-    local breathing = player.Breathing
-
-    if breathing and breathing.Value ~= 80 then
-        game:GetService("ReplicatedStorage").Remotes.Async:FireServer("Character", "Breath", true)
-    end
-end
-
-spawn(function()
-    while wait(1) do
-        if Settings.AutoBreath then
-            local character = game.Players.LocalPlayer.Character
-            if character then
-                clearDebuffs(character)
-                autoBreath()
-            end
-        end
-    end
-end)
 ------------------------------------------------------Trinket Functions
 local function getOre()
     local dist, ore = math.huge

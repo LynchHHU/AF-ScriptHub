@@ -342,7 +342,7 @@ local localPlayer = game.Players.LocalPlayer
 local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 
 -- Trinkets Toggle for Random Trinket
-local ToggleRandomTrinketFarm = Tabs.Trinkets:AddToggle("RandomTrinketFarm", {
+local ToggleRandomTrinketFarm = Tabs.Trinketstab:AddToggle("RandomTrinketFarm", {
     Title = "Farm Random Trinket",
     Default = false
 })
@@ -389,7 +389,7 @@ localPlayer.CharacterAdded:Connect(updateCharacter)
 local Settings = {}
 
 -- // Ores Dropdown \\ --
-local DropdownOre = Tabs.Trinket:AddDropdown("Ore", {
+local DropdownOre = Tabs.Trinketstab:AddDropdown("Ore", {
     Title = "Choose Ore",
     Description = "Choose what ore to farm",
     Values = Ore_list,
@@ -402,7 +402,7 @@ DropdownOre:OnChanged(function(v)
 end)
 
 -- // Ore Toggle \\ --
-local ToggleOre = Tabs.Trinket:AddToggle("Ore", {
+local ToggleOre = Tabs.Trinketstab:AddToggle("Ore", {
     Title = "Farm Ore", 
     Description = "Teleport you to ore, must equip pickaxe to work",
     Default = false,
@@ -412,7 +412,7 @@ local ToggleOre = Tabs.Trinket:AddToggle("Ore", {
 })
 
 -- // Flowers Dropdown \\ --
-local DropdownFlower = Tabs.Trinket:AddDropdown("Flowers", {
+local DropdownFlower = Tabs.Trinketstab:AddDropdown("Flowers", {
     Title = "Choose Flower",
     Values = Flower_list,
     Multi = false,
@@ -426,7 +426,7 @@ DropdownFlower:OnChanged(function(v)
 end)
 
 -- // Flower Toggle \\ --
-local ToggleFlower = Tabs.Trinket:AddToggle("Flower", {
+local ToggleFlower = Tabs.Trinketstab:AddToggle("Flower", {
     Title = "Farm Flower",
     Default = false
 })

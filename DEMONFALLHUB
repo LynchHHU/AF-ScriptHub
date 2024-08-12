@@ -96,8 +96,6 @@ local Window = Fluent:CreateWindow({
 -- // TABS \\ --
 local Tabs = {
     Farmingtab = Window:AddTab({ Title = " | Farming", Icon = "swords" }),
-    Raidtab = Window:AddTab({ Title = " | Raid", Icon = "sword" }),
-    Playertab = Window:AddTab({ Title = " | Player", Icon = "user" }),
     Misctab = Window:AddTab({ Title = " | Miscellaneous", Icon = "settings" }),
     Trinketstab = Window:AddTab({ Title =" | Trinkets Farm", Icon = "dollar-sign" }),
     Teleporttab = Window:AddTab({ Title = " | Teleport", Icon = "plane" }),
